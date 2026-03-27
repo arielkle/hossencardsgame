@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק קלפי חוסן</title>
+    
+    <!-- טעינת העיצוב (Tailwind CSS) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- טעינת React ישירות לדפדפן -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- טעינת Babel שמאפשר לקרוא את קוד ה-React -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* אנימציות מיוחדות למשחק */
+        @keyframes shimmer {
+            100% { transform: translateX(400%); }
+        }
+        .animate-shimmer {
+            animation: shimmer 1.5s infinite;
+        }
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-sky-100 via-purple-100 to-pink-100 font-sans m-0 p-0 min-h-screen">
+    <!-- כאן המשחק יטען -->
+    <div id="root"></div>
+
+    <!-- קוד המשחק (React) -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        // אייקונים לשימוש במשחק
+        const SparklesIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        );
+        const RefreshIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        );
+        const LayersIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-6 opacity-50"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>
+        );
+
+        // יצירת חפיסת הקלפים הראשונית - עודכן ל-40 קלפים
+        const generateInitialDeck = () => {
+            return Array.from({ length: 40 }, (_, i) => ({
+                id: i + 1,
+                image: 'card' + (i + 1) + '.png', 
+            }));
+        };
+
+        function App() {
+            const [deck, setDeck] = useState(generateInitialDeck());
+            const [currentCard, setCurrentCard] = useState(null);
+            const [isAnimating, setIsAnimating] = useState(false);
+            const [failedImages, setFailedImages] = useState(new Set());
+            const [showResetModal, setShowResetModal] = useState(false);
+            const [currentScreen, setCurrentScreen] = useState('intro');
+
+            const drawCard = () => {
+                if (deck.length === 0) return;
+                setIsAnimating(true);
+                
+                setTimeout(() => {
+                    const randomIndex = Math.floor(Math.random() * deck.length);
+                    const drawnCard = deck[randomIndex];
+                    setCurrentCard(drawnCard);
+                    
+                    const newDeck = [...deck];
+                    newDeck.splice(randomIndex, 1);
+                    setDeck(newDeck);
+                    
+                    setIsAnimating(false);
+                }, 400);
+            };
+
+            const triggerReset = () => {
+                setShowResetModal(true);
+            };
+
+            const confirmReset = () => {
+                setDeck(generateInitialDeck());
+                setCurrentCard(null);
+                setFailedImages(new Set());
+                setShowResetModal(false);
+            };
+
+            const cancelReset = () => {
+                setShowResetModal(false);
+            };
+
+            // --- מסך הפתיחה וההנחיות ---
+            if (currentScreen === 'intro') {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center py-10 px-4 relative">
+                        <div className="w-full max-w-3xl flex flex-col items-center bg-white/70 backdrop-blur-md p-10 md:p-14 rounded-[2.5rem] shadow-xl border border-white/60 text-center relative z-10">
+                            
+                            <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-purple-500 to-pink-500 mb-8 flex items-center justify-center gap-4 drop-shadow-sm">
+                                <SparklesIcon />
+                                קלפי חוסן
+                                <SparklesIcon />
+                            </h1>
+                            
+                            <div className="text-right w-full bg-white/80 p-8 rounded-3xl mb-10 shadow-sm border border-white">
+                                <h2 className="text-3xl font-bold text-slate-800 mb-6 border-b-2 border-purple-100 pb-4">הנחיות המשחק</h2>
+                                
+                                <div className="space-y-6 text-slate-700 text-lg leading-relaxed">
+                                    <div>
+                                        <h3 className="font-bold text-xl text-purple-600 mb-1 flex items-center gap-2">👑 הפעלת המשחק</h3>
+                                        <p>המשחק מופעל על ידי המורה בלבד. המורה מציג/ה את המשחק על הלוח החכם בכיתה או בשיתוף מסך, ומנהל/ת את הפעילות מול הכיתה.</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <h3 className="font-bold text-xl text-pink-600 mb-1 flex items-center gap-2">🎲 איך משחקים?</h3>
+                                        <p>המורה לוחץ/ת על כפתור <b>"הגרילו קלף"</b>. קלף אקראי מתוך הערימה ייחשף בגדול על המסך. לאחר חשיפת הקלף, המורה תבחר תלמיד או תלמידה ותבקש מהם להגיב, לענות או לשתף בהתאם למה שמופיע בקלף.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button 
+                                onClick={() => setCurrentScreen('game')}
+                                className="w-full sm:w-auto px-16 py-5 rounded-full text-2xl font-bold text-white shadow-[0_10px_20px_rgba(236,72,153,0.3)] transition-all duration-300 bg-gradient-to-r from-sky-400 via-purple-400 to-pink-400 hover:from-sky-500 hover:via-purple-500 hover:to-pink-500 hover:shadow-[0_15px_30px_rgba(168,85,247,0.4)] hover:-translate-y-2"
+                            >
+                                התחילו לשחק!
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- מסך המשחק עצמו ---
+            return (
+                <div className="min-h-screen flex flex-col items-center py-10 px-4">
+                    
+                    <div className="w-full max-w-4xl flex flex-col items-center mb-10 bg-white/60 backdrop-blur-sm p-8 rounded-3xl shadow-sm border border-white/50">
+                        <div className="text-center">
+                            <h1 className="text-4xl font-bold text-slate-800 mb-3 flex items-center justify-center gap-3">
+                                <SparklesIcon />
+                                קלפי חוסן
+                                <SparklesIcon />
+                            </h1>
+                            <p className="text-lg text-slate-600">הגרילו קלף מתוך 40 הקלפים ובקשו מהתלמידים להגיב!</p>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-center gap-12 relative">
+                        
+                        {/* עמודה ימנית: אזור הקלף */}
+                        <div className="flex-1 w-full flex justify-center">
+                            <div className={`transition-all duration-500 transform ${isAnimating ? 'scale-95 opacity-50 blur-sm' : 'scale-100 opacity-100 blur-0'} w-full aspect-[3/4] max-w-md`}>
+                                {currentCard ? (
+                                    <div className="w-full h-full relative group perspective-1000">
+                                        <div className="w-full h-full transition-transform duration-300 group-hover:scale-[1.02] flex items-center justify-center">
+                                            
+                                            {currentCard.image && !failedImages.has(currentCard.id) ? (
+                                                <img 
+                                                    src={currentCard.image} 
+                                                    alt={`קלף ${currentCard.id}`} 
+                                                    className="w-full h-full object-contain drop-shadow-2xl"
+                                                    onError={() => setFailedImages(prev => new Set(prev).add(currentCard.id))}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full rounded-3xl shadow-2xl bg-gradient-to-br from-sky-300 via-purple-300 to-pink-300 flex flex-col items-center justify-center text-white p-6">
+                                                    <span className="text-2xl font-medium mb-4 opacity-80">קלף מספר</span>
+                                                    <span className="text-9xl font-black drop-shadow-lg">{currentCard.id}</span>
+                                                </div>
+                                            )}
+
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-full rounded-3xl shadow-xl border-4 border-dashed border-purple-200 flex flex-col items-center justify-center bg-white/50 text-purple-400 backdrop-blur-sm">
+                                        <LayersIcon />
+                                        <h2 className="text-2xl font-medium">הקופה מוכנה</h2>
+                                        <p className="mt-2 text-center px-6">לחצו על כפתור ההגרלה כדי להתחיל</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* עמודה שמאלית: פאנל שליטה */}
+                        <div className="w-full max-w-xs flex flex-col items-center gap-6">
+                            
+                            <div className="flex flex-col items-center bg-white/80 backdrop-blur-sm w-full py-8 rounded-3xl text-purple-800 shadow-lg border border-purple-100">
+                                <span className="text-xl font-medium mb-2">קלפים בקופה</span>
+                                <span className="text-7xl font-black drop-shadow-sm text-purple-600">{deck.length}</span>
+                            </div>
+
+                            <button
+                                onClick={drawCard}
+                                disabled={deck.length === 0 || isAnimating}
+                                className={`w-full relative overflow-hidden group py-6 rounded-3xl text-2xl font-bold text-white shadow-xl transition-all duration-300 ${deck.length === 0 ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-sky-400 via-purple-400 to-pink-400 hover:from-sky-500 hover:via-purple-500 hover:to-pink-500 hover:shadow-2xl hover:-translate-y-1 active:translate-y-0'}`}
+                            >
+                                <div className="absolute inset-0 w-1/4 h-full bg-white/20 theme-shimmer skew-x-12 -translate-x-full group-hover:animate-shimmer"></div>
+                                <span className="relative flex items-center justify-center gap-3">
+                                    {deck.length === 0 ? 'לא נותרו קלפים' : currentCard ? 'הגרילו קלף נוסף' : 'הגרילו קלף'}
+                                </span>
+                            </button>
+
+                            <button 
+                                onClick={triggerReset} 
+                                className="w-full flex items-center justify-center gap-3 text-pink-500 hover:text-white transition-all py-4 rounded-2xl hover:bg-pink-400 shadow-sm border-2 border-pink-200 hover:border-pink-400 font-semibold text-lg" 
+                                title="התחל מחדש"
+                            >
+                                <RefreshIcon />
+                                התחלת משחק מחדש
+                            </button>
+                        </div>
+
+                    </div>
+
+                    {/* חלון מודאל לאישור איפוס */}
+                    {showResetModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                            <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center transform transition-all">
+                                <h3 className="text-2xl font-bold text-slate-800 mb-3">התחלת משחק מחדש</h3>
+                                <p className="text-slate-600 mb-8">האם ברצונך לערבב את הקלפים ולהתחיל משחק חדש (40 קלפים)?</p>
+                                <div className="flex gap-4 justify-center">
+                                    <button
+                                        onClick={cancelReset}
+                                        className="px-6 py-2 rounded-xl text-slate-500 font-medium hover:bg-slate-100 transition-colors border border-slate-200"
+                                    >
+                                        ביטול
+                                    </button>
+                                    <button
+                                        onClick={confirmReset}
+                                        className="px-6 py-2 rounded-xl bg-pink-500 text-white font-medium hover:bg-pink-600 shadow-md transition-colors"
+                                    >
+                                        כן, מחדש
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
